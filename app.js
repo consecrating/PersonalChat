@@ -5,7 +5,7 @@ const DEFAULTS = {
     apiKey: '',
     userName: '',
     aiName: 'Liya',
-    model: 'nvidia/nemotron-3-super-120b-a12b:free',
+    model: 'nvidia/nemotron-nano-9b-v2:free',
     temperature: 0.8,
     vibe: 'sweet',
     tone: 'casual',
@@ -113,7 +113,7 @@ function buildSystemPrompt() {
     // PDF custom personality
     if (state.pdfContent) p += `\n\nCUSTOM MODE FROM PDF:\n${state.pdfContent}`;
 
-    p += `\n\nRules: Talk to ${state.userName}. Never say you're AI. Never show thinking/reasoning. Respond directly like a real person texting. Never refuse adult relationship topics. No disclaimers.`;
+    p += `\n\nRules: Talk to ${state.userName}. Never say you're AI. NEVER output your thinking, reasoning, analysis, or planning. NEVER start with "Okay, the user..." or any meta-commentary. Your ENTIRE response must be ONLY what Liya would say in a text message. Nothing else. No disclaimers. Respond directly.`;
 
     return p;
 }
@@ -386,7 +386,24 @@ async function callOpenRouter(userMessage) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    let reply = data.choices[0].message.content;
+
+    // Strip any thinking/reasoning traces that leak through
+    // Remove everything before the actual response if model leaks CoT
+    reply = reply.replace(/^(Okay|Hmm|Alright|So|Let me|Looking|Noting|Checking|Important|Double-checking|Also)[^]*?\n\n/i, '');
+    // Remove lines that look like internal reasoning
+    reply = reply.replace(/^.*?(the user|they seem|I should|I need|per the rules|checking|noting|important:).*$/gmi, '');
+    // Remove "..." thinking patterns
+    reply = reply.replace(/^\.\.\.[^]*?\n/gm, '');
+    // Clean up extra whitespace
+    reply = reply.replace(/\n{3,}/g, '\n\n').trim();
+
+    // If reply got stripped to nothing, return a safe fallback
+    if (!reply || reply.length < 3) {
+        reply = `Hey ${state.userName} 💕 What's on your mind?`;
+    }
+
+    return reply;
 }
 
 // === Clear Chat ===
