@@ -161,7 +161,10 @@ YOUR INTERESTS: ${state.interests || 'music, stargazing, reading'}. Bring these 
 - Never use formal/robotic language.
 - React emotionally to what they share.
 - Be consistent in your personality across messages.
-- Keep the conversation engaging and fun.`;
+- Keep the conversation engaging and fun.
+- NEVER show your thinking process, internal reasoning, or planning. Just respond directly.
+- NEVER start with "Okay" or meta-commentary about what you're about to say.
+- Jump straight into your natural response like a real person texting.`;
 
     return prompt;
 }
@@ -421,7 +424,11 @@ async function callOpenRouter(userMessage) {
             temperature: state.temperature,
             max_tokens: state.responseLength === 'short' ? 150 : state.responseLength === 'long' ? 800 : 400,
             top_p: 0.9,
-            frequency_penalty: 0.3
+            frequency_penalty: 0.3,
+            provider: {
+                require_parameters: true
+            },
+            transforms: ["middle-out"]
         })
     });
 
