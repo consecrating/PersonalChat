@@ -34,6 +34,19 @@ function loadState() {
     const saved = localStorage.getItem('liya_state');
     if (saved) {
         const parsed = JSON.parse(saved);
+        // Fix: if saved model is no longer free, reset to default
+        const validFreeModels = [
+            'nvidia/nemotron-3-super-120b-a12b:free',
+            'nvidia/nemotron-nano-9b-v2:free',
+            'nvidia/nemotron-3-nano-30b-a3b:free',
+            'nousresearch/hermes-3-llama-3.1-405b:free',
+            'meta-llama/llama-3.3-70b-instruct:free',
+            'qwen/qwen3-next-80b-a3b-instruct:free',
+            'openai/gpt-oss-20b:free'
+        ];
+        if (parsed.model && !validFreeModels.includes(parsed.model)) {
+            parsed.model = DEFAULTS.model;
+        }
         return { ...DEFAULTS, ...parsed, features: { ...DEFAULTS.features, ...(parsed.features || {}) } };
     }
     return { ...DEFAULTS, features: { ...DEFAULTS.features } };
