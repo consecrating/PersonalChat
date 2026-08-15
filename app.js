@@ -388,15 +388,44 @@ async function callOpenRouter(userMessage) {
     const data = await response.json();
     let reply = data.choices[0].message.content;
 
-    // Strip any thinking/reasoning traces that leak through
-    // Remove everything before the actual response if model leaks CoT
-    reply = reply.replace(/^(Okay|Hmm|Alright|So|Let me|Looking|Noting|Checking|Important|Double-checking|Also)[^]*?\n\n/i, '');
-    // Remove lines that look like internal reasoning
-    reply = reply.replace(/^.*?(the user|they seem|I should|I need|per the rules|checking|noting|important:).*$/gmi, '');
-    // Remove "..." thinking patterns
-    reply = reply.replace(/^\.\.\.[^]*?\n/gm, '');
-    // Clean up extra whitespace
-    reply = reply.replace(/\n{3,}/g, '\n\n').trim();
+    // AGGRESSIVE filter: strip ALL thinking/reasoning traces
+    // Pattern: thinking usually ends with the actual short reply at the very end
+    
+    // 1. If response has "Let's craft:" or "Let's do:" — take only what comes after the last quote
+    const craftMatch = reply.match(/(?:Let's (?:craft|do|go with)|Final:?|Response:?)[:\s]*[""]([^""]+)[""]?\s*$/i);
+    if (craftMatch) {
+        reply = craftMatch[1];
+    } else {
+        // 2. Remove everything that looks like reasoning (lines with meta-analysis)
+        const thinkingPatterns = /^.*?(the user|they seem|I should|I need|per the rules|checking|noting|important:|must not|let's craft|could be|need \d|include emoji|that's \d|keep \d|double.?check|pivot|mirror|match their|my .* interest|within character|key here|brainstorm|avoiding|draft:?).*$/gmi;
+        reply = reply.replace(thinkingPatterns, '');
+        
+        // 3. Remove "We need to..." planning lines
+        reply = reply.replace(/^.*?(we need|we can|we should|should be|could add|let me).*$/gmi, '');
+        
+        // 4. Remove lines starting with reasoning words
+        reply = reply.replace(/^(Okay|Hmm|Alright|So,|Now|Looking|Noting|Also|Interesting)[,:]?\s+.*$/gm, '');
+        
+        // 5. If there are quoted sections, extract the last one (likely the actual reply)
+        const quotes = reply.match(/[""]([^""]{10,})[""]?/g);
+        if (quotes && quotes.length > 0) {
+            const lastQuote = quotes[quotes.length - 1].replace(/[""]/g, '');
+            if (lastQuote.length > 10) {
+                reply = lastQuote;
+            }
+        }
+    }
+
+    // Final cleanup
+    reply = reply.replace(/\n{2,}/g, '\n').replace(/^\s*\n/gm, '').trim();
+
+    // If reply is still too long (>500 chars) and has reasoning, take last 2-4 sentences
+    if (reply.length > 500) {
+        const sentences = reply.match(/[^.!?]+[.!?]+/g);
+        if (sentences && sentences.length > 4) {
+            reply = sentences.slice(-4).join(' ').trim();
+        }
+    }
 
     // If reply got stripped to nothing, return a safe fallback
     if (!reply || reply.length < 3) {
