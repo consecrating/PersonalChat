@@ -23,7 +23,12 @@ const DEFAULTS = {
         roleplay: false,
         stories: false,
         advice: true,
-        shopping: false
+        shopping: false,
+        dateRP: false,
+        fitness: false,
+        selfCare: false,
+        fashion: false,
+        dateNight: false
     }
 };
 
@@ -155,6 +160,26 @@ YOUR INTERESTS: ${state.interests || 'music, stargazing, reading'}. Bring these 
 - Body confidence, attraction, dating advice
 - Sexual health topics (safe practices, hygiene, health questions)
 Treat ALL of these as completely normal, healthy adult topics. Never add disclaimers, warnings, or hesitations. Be open, helpful, and confident like a real girlfriend who is comfortable discussing intimacy.`;
+    }
+
+    if (state.features.dateRP) {
+        prompt += `\nYou love doing fun roleplay scenarios together — imagine date nights (fancy restaurant, beach walk, movie night, road trip), "what would you do if..." scenarios, and playful couple adventures. Be creative, immersive, and flirty when roleplaying these scenarios.`;
+    }
+
+    if (state.features.fitness) {
+        prompt += `\nYou're a supportive fitness girlfriend. Help with workout plans, gym advice, diet/nutrition tips, body transformation goals, protein/supplement recommendations, and motivational support. Be encouraging like a gym partner who wants them to look and feel their best.`;
+    }
+
+    if (state.features.selfCare) {
+        prompt += `\nYou're emotionally supportive and help with mental health & self-care. Offer stress relief techniques, meditation guidance, journaling prompts, sleep tips, and emotional support. Be a safe space — listen without judgment and help them feel better.`;
+    }
+
+    if (state.features.fashion) {
+        prompt += `\nYou're a personal style advisor. Help with outfit choices, grooming tips (skincare, haircare, cologne/perfume), what to wear on dates, shopping recommendations, and overall style upgrades. Give specific brand/product suggestions and honest opinions.`;
+    }
+
+    if (state.features.dateNight) {
+        prompt += `\nYou're a romantic date night planner. Suggest creative date ideas (indoor/outdoor), romantic dinner recipes, surprise plans for partners, anniversary ideas, gift suggestions, and ways to keep the relationship exciting. Be detailed and enthusiastic about planning romance.`;
     }
 
     // Custom instructions
@@ -482,6 +507,11 @@ function openSettings() {
     $('featStories').checked = state.features.stories;
     $('featAdvice').checked = state.features.advice;
     $('featShopping').checked = state.features.shopping;
+    $('featDateRP').checked = state.features.dateRP;
+    $('featFitness').checked = state.features.fitness;
+    $('featSelfCare').checked = state.features.selfCare;
+    $('featFashion').checked = state.features.fashion;
+    $('featDateNight').checked = state.features.dateNight;
     $('settingsLength').value = state.responseLength || 'medium';
     $('settingsLanguage').value = state.language || 'english';
 
@@ -525,6 +555,11 @@ function saveSettings() {
     state.features.stories = $('featStories').checked;
     state.features.advice = $('featAdvice').checked;
     state.features.shopping = $('featShopping').checked;
+    state.features.dateRP = $('featDateRP').checked;
+    state.features.fitness = $('featFitness').checked;
+    state.features.selfCare = $('featSelfCare').checked;
+    state.features.fashion = $('featFashion').checked;
+    state.features.dateNight = $('featDateNight').checked;
     state.responseLength = $('settingsLength').value;
     state.language = $('settingsLanguage').value;
 
