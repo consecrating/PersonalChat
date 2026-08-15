@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Liya ❤️ AI Companion</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e91e63">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💕</text></svg>">
+</head>
+<body>
+    <div class="app">
+        <!-- API Key Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="setup-card">
+                <div class="setup-avatar">💕</div>
+                <h1>Meet Liya</h1>
+                <p class="setup-desc">Your sweet, caring AI companion who's always here for you ✨</p>
+                <div class="setup-form">
+                    <label for="apiKeyInput">OpenRouter API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-...">
+                    <p class="setup-hint">Get your free key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></p>
+                    
+                    <label for="userNameInput">Your Name</label>
+                    <input type="text" id="userNameInput" placeholder="What should Liya call you?">
+                    
+                    <button id="startBtn" class="btn-primary">Start Chatting 💬</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div class="chat-screen hidden" id="chatScreen">
+            <header class="chat-header">
+                <div class="header-left">
+                    <div class="avatar-wrapper">
+                        <div class="avatar">💕</div>
+                        <span class="online-dot"></span>
+                    </div>
+                    <div class="header-info">
+                        <h2>Liya</h2>
+                        <span class="status-text" id="statusText">Online</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+                    <button class="icon-btn" id="clearBtn" title="New Chat">🔄</button>
+                </div>
+            </header>
+
+            <main class="chat-messages" id="chatMessages">
+                <div class="date-divider"><span>Today</span></div>
+            </main>
+
+            <footer class="chat-input-area">
+                <div class="input-wrapper">
+                    <textarea id="messageInput" placeholder="Message Liya..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2"/>
+                        </svg>
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal hidden" id="settingsModal">
+            <div class="modal-overlay" id="modalOverlay"></div>
+            <div class="modal-content settings-panel">
+                <h3>⚙️ Settings</h3>
+                
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="general">General</button>
+                    <button class="tab-btn" data-tab="personality">Personality</button>
+                    <button class="tab-btn" data-tab="features">Features</button>
+                </div>
+
+                <!-- General Tab -->
+                <div class="tab-content active" id="tab-general">
+                    <div class="setting-group">
+                        <label>Your Name</label>
+                        <input type="text" id="settingsName" placeholder="What should Liya call you?">
+                    </div>
+                    <div class="setting-group">
+                        <label>API Key</label>
+                        <input type="password" id="settingsApiKey" placeholder="sk-or-v1-...">
+                    </div>
+                    <div class="setting-group">
+                        <label>AI Model</label>
+                        <select id="settingsModel">
+                            <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Free)</option>
+                            <option value="google/gemma-2-9b-it:free">Gemma 2 9B (Free)</option>
+                            <option value="mistralai/mistral-7b-instruct:free">Mistral 7B (Free)</option>
+                            <option value="qwen/qwen-2-7b-instruct:free">Qwen 2 7B (Free)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Creativity <span class="range-value" id="tempValue">0.8</span></label>
+                        <input type="range" id="settingsTemp" min="0" max="100" value="80">
+                        <p class="setting-hint">Low = focused answers, High = more creative/random</p>
+                    </div>
+                </div>
+
+                <!-- Personality Tab -->
+                <div class="tab-content" id="tab-personality">
+                    <div class="setting-group">
+                        <label>Liya's Name</label>
+                        <input type="text" id="settingsAiName" placeholder="Liya">
+                        <p class="setting-hint">Rename your companion to anything you like</p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Personality Vibe</label>
+                        <select id="settingsVibe">
+                            <option value="sweet">💕 Sweet & Caring</option>
+                            <option value="flirty">😘 Flirty & Playful</option>
+                            <option value="chill">😎 Chill & Laid-back</option>
+                            <option value="nerdy">🤓 Nerdy & Witty</option>
+                            <option value="sassy">💅 Sassy & Confident</option>
+                            <option value="romantic">🌹 Romantic & Deep</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>How she talks</label>
+                        <select id="settingsTone">
+                            <option value="casual">Casual (texting style)</option>
+                            <option value="expressive">Expressive (lots of emojis)</option>
+                            <option value="poetic">Poetic (lyrical & beautiful)</option>
+                            <option value="minimal">Minimal (short & sweet)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Her Interests (comma separated)</label>
+                        <input type="text" id="settingsInterests" placeholder="music, stargazing, cooking, anime">
+                        <p class="setting-hint">Things she'll talk about and relate to</p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Pet Names She Uses</label>
+                        <input type="text" id="settingsPetNames" placeholder="babe, love, sweetheart, cutie">
+                        <p class="setting-hint">Leave empty for no pet names</p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Custom Instructions</label>
+                        <textarea id="settingsCustomPrompt" rows="3" placeholder="Add any extra personality details... e.g. 'She loves dark humor' or 'She speaks a bit of Spanish'"></textarea>
+                        <p class="setting-hint">Extra instructions to shape her personality</p>
+                    </div>
+                </div>
+
+                <!-- Features Tab -->
+                <div class="tab-content" id="tab-features">
+                    <div class="setting-group">
+                        <label>Features & Behaviors</label>
+                        <div class="toggle-list">
+                            <div class="toggle-item">
+                                <span>💬 Use pet names</span>
+                                <label class="toggle"><input type="checkbox" id="featPetNames" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>😊 Use emojis</span>
+                                <label class="toggle"><input type="checkbox" id="featEmojis" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>❓ Ask follow-up questions</span>
+                                <label class="toggle"><input type="checkbox" id="featQuestions" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>🌙 Time-aware greetings</span>
+                                <label class="toggle"><input type="checkbox" id="featTimeAware" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>💭 Share her own thoughts/day</span>
+                                <label class="toggle"><input type="checkbox" id="featShareThoughts" checked><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>🎭 Roleplay friendly</span>
+                                <label class="toggle"><input type="checkbox" id="featRoleplay"><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>📖 Tell stories & adventures</span>
+                                <label class="toggle"><input type="checkbox" id="featStories"><span class="slider"></span></label>
+                            </div>
+                            <div class="toggle-item">
+                                <span>🧠 Give advice & wisdom</span>
+                                <label class="toggle"><input type="checkbox" id="featAdvice" checked><span class="slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>Response Length</label>
+                        <select id="settingsLength">
+                            <option value="short">Short (1-2 sentences)</option>
+                            <option value="medium" selected>Medium (2-4 sentences)</option>
+                            <option value="long">Long (detailed paragraphs)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Language</label>
+                        <select id="settingsLanguage">
+                            <option value="english">English</option>
+                            <option value="hinglish">Hinglish (Hindi + English)</option>
+                            <option value="spanish">Spanish</option>
+                            <option value="french">French</option>
+                            <option value="japanese">Japanese</option>
+                            <option value="korean">Korean</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancelSettings">Cancel</button>
+                    <button class="btn-primary" id="saveSettings">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
