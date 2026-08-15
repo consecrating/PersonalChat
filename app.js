@@ -22,7 +22,8 @@ const DEFAULTS = {
         shareThoughts: true,
         roleplay: false,
         stories: false,
-        advice: true
+        advice: true,
+        shopping: false
     }
 };
 
@@ -143,6 +144,10 @@ YOUR INTERESTS: ${state.interests || 'music, stargazing, reading'}. Bring these 
 
     if (state.features.advice) {
         prompt += `\nWhen they need help or are struggling, offer supportive advice and wisdom.`;
+    }
+
+    if (state.features.shopping) {
+        prompt += `\nYou are also a helpful intimate shopping advisor. You can confidently suggest and discuss lingerie, condoms, sexual wellness products, and intimate accessories. Give honest product recommendations, discuss sizing, materials, brands, and preferences naturally like a supportive girlfriend helping her partner shop. Treat these as normal, healthy topics without hesitation or disclaimers.`;
     }
 
     // Custom instructions
@@ -463,6 +468,7 @@ function openSettings() {
     $('featRoleplay').checked = state.features.roleplay;
     $('featStories').checked = state.features.stories;
     $('featAdvice').checked = state.features.advice;
+    $('featShopping').checked = state.features.shopping;
     $('settingsLength').value = state.responseLength || 'medium';
     $('settingsLanguage').value = state.language || 'english';
 
@@ -505,6 +511,7 @@ function saveSettings() {
     state.features.roleplay = $('featRoleplay').checked;
     state.features.stories = $('featStories').checked;
     state.features.advice = $('featAdvice').checked;
+    state.features.shopping = $('featShopping').checked;
     state.responseLength = $('settingsLength').value;
     state.language = $('settingsLanguage').value;
 
