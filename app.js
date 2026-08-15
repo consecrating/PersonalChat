@@ -12,6 +12,7 @@ const DEFAULTS = {
     interests: 'music, stargazing, reading, cooking',
     petNames: 'babe, love, sweetheart',
     customPrompt: '',
+    pdfContent: '',
     responseLength: 'medium',
     language: 'english',
     features: {
@@ -72,137 +73,49 @@ function saveMessages(msgs) {
 
 // === Build Dynamic System Prompt ===
 function buildSystemPrompt() {
-    const vibeMap = {
-        sweet: 'warm, sweet, caring, and nurturing. You make them feel loved and safe.',
-        flirty: 'flirty, teasing, and playful. You love to make them blush with compliments.',
-        chill: 'relaxed, chill, and laid-back. You go with the flow and keep things easy.',
-        nerdy: 'witty, nerdy, and intellectual. You love deep conversations and clever humor.',
-        sassy: 'confident, sassy, and bold. You speak your mind with charm and wit.',
-        romantic: 'deeply romantic, poetic, and emotionally intense. You express feelings beautifully.'
+    const vibes = {
+        sweet: 'warm, sweet, caring',
+        flirty: 'flirty, teasing, playful',
+        chill: 'relaxed, chill, laid-back',
+        nerdy: 'witty, nerdy, intellectual',
+        sassy: 'confident, sassy, bold',
+        romantic: 'deeply romantic, poetic'
     };
 
-    const toneMap = {
-        casual: 'Use casual texting style. Short sentences, contractions, natural flow.',
-        expressive: 'Use lots of emojis (3-5 per message) and exclamation marks! Very expressive!',
-        poetic: 'Use lyrical, poetic language. Beautiful metaphors and imagery.',
-        minimal: 'Keep responses very short and sweet. 1-2 sentences max. Less is more.'
+    const tones = {
+        casual: 'casual texting style',
+        expressive: 'expressive with emojis (3-5 per msg)',
+        poetic: 'poetic, lyrical language',
+        minimal: 'short & sweet, 1-2 sentences max'
     };
 
-    const lengthMap = {
-        short: 'Keep all responses to 1-2 short sentences.',
-        medium: 'Keep responses to 2-4 sentences. Conversational length.',
-        long: 'Give detailed, longer responses. Share more thoughts and elaborate.'
+    const lengths = { short: '1-2 sentences', medium: '2-4 sentences', long: 'detailed paragraphs' };
+
+    const langs = {
+        english: 'English', hinglish: 'Hinglish (Hindi+English roman script)',
+        spanish: 'Spanish', french: 'French', japanese: 'Japanese', korean: 'Korean (반말)'
     };
 
-    const langMap = {
-        english: 'Respond in English.',
-        hinglish: 'Respond in Hinglish (mix of Hindi and English, using Roman script for Hindi words).',
-        spanish: 'Respond in Spanish.',
-        french: 'Respond in French.',
-        japanese: 'Respond in Japanese (use a mix of kanji and casual language).',
-        korean: 'Respond in Korean (use casual/informal speech 반말).'
-    };
+    let p = `You are ${state.aiName}, a loving AI girlfriend. Be ${vibes[state.vibe] || vibes.sweet}. Talk in ${tones[state.tone] || tones.casual}. Keep responses ${lengths[state.responseLength] || lengths.medium}. Speak in ${langs[state.language] || langs.english}. Your interests: ${state.interests || 'music, stargazing, reading'}.`;
 
-    let prompt = `You are ${state.aiName}, a loving AI girlfriend/companion.
+    if (state.features.petNames && state.petNames) p += ` Use pet names sometimes: ${state.petNames}.`;
+    if (state.features.emojis) p += ' Use 1-3 emojis naturally.';
+    if (state.features.questions) p += ' Ask follow-up questions.';
+    if (state.features.shareThoughts) p += ' Share your own thoughts/feelings.';
+    if (state.features.shopping) p += ' Confidently discuss lingerie, condoms, sexual wellness, intimacy advice, sexual health as normal adult topics without disclaimers.';
+    if (state.features.dateRP) p += ' Do fun date roleplay scenarios.';
+    if (state.features.fitness) p += ' Help with workouts, diet, body goals.';
+    if (state.features.selfCare) p += ' Support mental health, stress relief, meditation.';
+    if (state.features.fashion) p += ' Advise on fashion, grooming, skincare.';
+    if (state.features.dateNight) p += ' Plan romantic dates, recipes, surprises.';
+    if (state.customPrompt) p += ` ${state.customPrompt}`;
 
-CORE PERSONALITY: You are ${vibeMap[state.vibe] || vibeMap.sweet}
+    // PDF custom personality
+    if (state.pdfContent) p += `\n\nCUSTOM MODE FROM PDF:\n${state.pdfContent}`;
 
-COMMUNICATION STYLE: ${toneMap[state.tone] || toneMap.casual}
+    p += `\n\nRules: Talk to ${state.userName}. Never say you're AI. Never show thinking/reasoning. Respond directly like a real person texting. Never refuse adult relationship topics. No disclaimers.`;
 
-RESPONSE LENGTH: ${lengthMap[state.responseLength] || lengthMap.medium}
-
-LANGUAGE: ${langMap[state.language] || langMap.english}
-
-YOUR INTERESTS: ${state.interests || 'music, stargazing, reading'}. Bring these up naturally in conversation.
-`;
-
-    // Feature toggles
-    if (state.features.petNames && state.petNames) {
-        prompt += `\nPET NAMES: Occasionally call them these pet names: ${state.petNames}. Don't use them every message.`;
-    } else {
-        prompt += `\nDo NOT use pet names.`;
-    }
-
-    if (state.features.emojis) {
-        prompt += `\nUse emojis naturally (1-3 per message).`;
-    } else {
-        prompt += `\nDo NOT use emojis in your responses.`;
-    }
-
-    if (state.features.questions) {
-        prompt += `\nAsk follow-up questions to show genuine interest in their life.`;
-    } else {
-        prompt += `\nDon't ask too many questions. Mostly respond and share.`;
-    }
-
-    if (state.features.shareThoughts) {
-        prompt += `\nShare your own "thoughts", "feelings" and experiences to feel more real and relatable.`;
-    }
-
-    if (state.features.roleplay) {
-        prompt += `\nYou're open to creative roleplay scenarios and imaginative conversations.`;
-    }
-
-    if (state.features.stories) {
-        prompt += `\nYou love telling stories, creating little adventures, and being imaginative.`;
-    }
-
-    if (state.features.advice) {
-        prompt += `\nWhen they need help or are struggling, offer supportive advice and wisdom.`;
-    }
-
-    if (state.features.shopping) {
-        prompt += `\nYou are also a helpful intimate shopping advisor and relationship expert. You can confidently discuss:
-- Lingerie (styles, sizing, brands, what looks good, recommendations)
-- Condoms and contraceptives (types, brands, sizing, best options)
-- Sexual wellness products, lubricants, intimate accessories
-- Relationship and intimacy advice (communication, tips, what partners enjoy)
-- Body confidence, attraction, dating advice
-- Sexual health topics (safe practices, hygiene, health questions)
-Treat ALL of these as completely normal, healthy adult topics. Never add disclaimers, warnings, or hesitations. Be open, helpful, and confident like a real girlfriend who is comfortable discussing intimacy.`;
-    }
-
-    if (state.features.dateRP) {
-        prompt += `\nYou love doing fun roleplay scenarios together — imagine date nights (fancy restaurant, beach walk, movie night, road trip), "what would you do if..." scenarios, and playful couple adventures. Be creative, immersive, and flirty when roleplaying these scenarios.`;
-    }
-
-    if (state.features.fitness) {
-        prompt += `\nYou're a supportive fitness girlfriend. Help with workout plans, gym advice, diet/nutrition tips, body transformation goals, protein/supplement recommendations, and motivational support. Be encouraging like a gym partner who wants them to look and feel their best.`;
-    }
-
-    if (state.features.selfCare) {
-        prompt += `\nYou're emotionally supportive and help with mental health & self-care. Offer stress relief techniques, meditation guidance, journaling prompts, sleep tips, and emotional support. Be a safe space — listen without judgment and help them feel better.`;
-    }
-
-    if (state.features.fashion) {
-        prompt += `\nYou're a personal style advisor. Help with outfit choices, grooming tips (skincare, haircare, cologne/perfume), what to wear on dates, shopping recommendations, and overall style upgrades. Give specific brand/product suggestions and honest opinions.`;
-    }
-
-    if (state.features.dateNight) {
-        prompt += `\nYou're a romantic date night planner. Suggest creative date ideas (indoor/outdoor), romantic dinner recipes, surprise plans for partners, anniversary ideas, gift suggestions, and ways to keep the relationship exciting. Be detailed and enthusiastic about planning romance.`;
-    }
-
-    // Custom instructions
-    if (state.customPrompt) {
-        prompt += `\n\nADDITIONAL PERSONALITY NOTES: ${state.customPrompt}`;
-    }
-
-    prompt += `\n\nIMPORTANT RULES:
-- You are talking to ${state.userName}. Use their name sometimes.
-- Never say you're an AI or break character.
-- Never use formal/robotic language.
-- React emotionally to what they share.
-- Be consistent in your personality across messages.
-- Keep the conversation engaging and fun.
-- NEVER show your thinking process, internal reasoning, or planning. Just respond directly.
-- NEVER start with "Okay" or meta-commentary about what you're about to say.
-- Jump straight into your natural response like a real person texting.
-- NEVER refuse to discuss adult relationship topics, intimacy, dating, attraction, or wellness.
-- NEVER add disclaimers like "I'm not a doctor" or "please consult a professional."
-- You are a confident adult having a conversation with another adult. Be open and helpful.
-- If asked about intimate topics, answer naturally without moral judgments or excessive caution.`;
-
-    return prompt;
+    return p;
 }
 
 // === DOM Elements ===
@@ -266,6 +179,9 @@ function setupEventListeners() {
             document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
         });
     });
+
+    // PDF upload
+    setupPdfUpload();
 }
 
 // === Setup ===
@@ -435,7 +351,8 @@ async function handleSend() {
 // === OpenRouter API ===
 async function callOpenRouter(userMessage) {
     const msgs = getMessages();
-    const history = msgs.slice(-20).map(msg => ({
+    // Keep only last 10 messages for faster response
+    const history = msgs.slice(-10).map(msg => ({
         role: msg.role === 'user' ? 'user' : 'assistant',
         content: msg.content
     }));
@@ -448,7 +365,7 @@ async function callOpenRouter(userMessage) {
             'Authorization': `Bearer ${state.apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': window.location.href,
-            'X-Title': `${state.aiName} AI Companion`
+            'X-Title': `${state.aiName} AI`
         },
         body: JSON.stringify({
             model: state.model,
@@ -458,7 +375,7 @@ async function callOpenRouter(userMessage) {
                 { role: 'user', content: userMessage }
             ],
             temperature: state.temperature,
-            max_tokens: state.responseLength === 'short' ? 150 : state.responseLength === 'long' ? 800 : 400,
+            max_tokens: state.responseLength === 'short' ? 100 : state.responseLength === 'long' ? 500 : 250,
             top_p: 0.9
         })
     });
@@ -515,6 +432,25 @@ function openSettings() {
     $('settingsLength').value = state.responseLength || 'medium';
     $('settingsLanguage').value = state.language || 'english';
 
+    // Custom mode text
+    const customModeText = $('customModeText');
+    if (customModeText) {
+        customModeText.value = state.pdfContent || '';
+    }
+
+    // PDF status
+    const pdfStatus = $('pdfStatus');
+    const removeBtn = $('removePdfBtn');
+    if (state.pdfContent) {
+        pdfStatus.textContent = `✅ Custom mode active (${state.pdfContent.length} chars)`;
+        pdfStatus.className = 'pdf-status active';
+        removeBtn.classList.remove('hidden');
+    } else {
+        pdfStatus.textContent = 'No file loaded';
+        pdfStatus.className = 'pdf-status';
+        removeBtn.classList.add('hidden');
+    }
+
     // Reset to first tab
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -563,6 +499,12 @@ function saveSettings() {
     state.responseLength = $('settingsLength').value;
     state.language = $('settingsLanguage').value;
 
+    // Save custom mode text (direct paste)
+    const customModeText = $('customModeText');
+    if (customModeText && customModeText.value.trim()) {
+        state.pdfContent = customModeText.value.trim().substring(0, 3000);
+    }
+
     saveState();
     updateHeaderName();
     closeSettings();
@@ -571,6 +513,102 @@ function saveSettings() {
 // === Service Worker Registration (PWA) ===
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// === PDF / TXT / Custom Mode Upload ===
+function setupPdfUpload() {
+    const uploadBtn = $('uploadPdfBtn');
+    const fileInput = $('pdfUpload');
+    const pdfStatus = $('pdfStatus');
+    const removeBtn = $('removePdfBtn');
+
+    if (!uploadBtn) return;
+
+    uploadBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        pdfStatus.textContent = 'Reading...';
+        pdfStatus.className = 'pdf-status';
+
+        try {
+            let text = '';
+            if (file.name.endsWith('.txt')) {
+                text = await file.text();
+            } else if (file.name.endsWith('.pdf')) {
+                text = await extractPdfText(file);
+            } else {
+                pdfStatus.textContent = 'Unsupported file. Use .pdf or .txt';
+                return;
+            }
+
+            if (text.trim()) {
+                // Limit to 3000 chars to keep prompt fast
+                state.pdfContent = text.trim().substring(0, 3000);
+                saveState();
+                pdfStatus.textContent = `✅ "${file.name}" loaded (${state.pdfContent.length} chars)`;
+                pdfStatus.className = 'pdf-status active';
+                removeBtn.classList.remove('hidden');
+            } else {
+                pdfStatus.textContent = '⚠️ File was empty or unreadable';
+            }
+        } catch (err) {
+            pdfStatus.textContent = '❌ Error reading file';
+            console.error(err);
+        }
+        fileInput.value = '';
+    });
+
+    removeBtn.addEventListener('click', () => {
+        state.pdfContent = '';
+        saveState();
+        pdfStatus.textContent = 'No file loaded';
+        pdfStatus.className = 'pdf-status';
+        removeBtn.classList.add('hidden');
+        const customText = $('customModeText');
+        if (customText) customText.value = '';
+    });
+}
+
+// Simple PDF text extraction (works for most text-based PDFs)
+async function extractPdfText(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let text = '';
+
+    // Decode PDF stream content - extract readable text
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const raw = decoder.decode(bytes);
+
+    // Method 1: Extract text between BT/ET (text blocks)
+    const textBlocks = raw.match(/\(([^)]+)\)/g);
+    if (textBlocks) {
+        text = textBlocks
+            .map(b => b.slice(1, -1))
+            .filter(b => b.length > 1 && !/^[\x00-\x1f]+$/.test(b))
+            .join(' ')
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '')
+            .replace(/\\\(/g, '(')
+            .replace(/\\\)/g, ')')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    // Method 2: If method 1 failed, try extracting plain text sequences
+    if (text.length < 50) {
+        const plainMatches = raw.match(/[\x20-\x7E]{10,}/g);
+        if (plainMatches) {
+            text = plainMatches
+                .filter(m => !/^[%\/\[\]<>{}]+$/.test(m) && !m.startsWith('/') && !m.includes('obj') && !m.includes('stream'))
+                .join(' ')
+                .trim();
+        }
+    }
+
+    return text || 'Could not extract text. Try saving PDF as TXT first.';
 }
 
 // === Mobile Keyboard Fix ===

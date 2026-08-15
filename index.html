@@ -153,6 +153,18 @@
                 <!-- Features Tab -->
                 <div class="tab-content" id="tab-features">
                     <div class="setting-group">
+                        <label>📄 Custom Mode (Personality/Knowledge)</label>
+                        <div class="pdf-upload-area">
+                            <input type="file" id="pdfUpload" accept=".pdf,.txt" hidden>
+                            <button class="btn-upload" id="uploadPdfBtn">📎 Upload PDF / TXT</button>
+                            <span class="pdf-status" id="pdfStatus">No file loaded</span>
+                            <button class="btn-remove-pdf hidden" id="removePdfBtn">✕ Remove</button>
+                        </div>
+                        <textarea id="customModeText" rows="4" placeholder="Or paste custom instructions directly here...&#10;&#10;Example: 'You are a fitness coach named Max. Only discuss workouts and nutrition. Be strict and motivating.'"></textarea>
+                        <p class="setting-hint">Upload a PDF/TXT file OR paste text directly. This becomes Liya's new personality & knowledge base.</p>
+                    </div>
+
+                    <div class="setting-group">
                         <label>Features & Behaviors</label>
                         <div class="toggle-list">
                             <div class="toggle-item">

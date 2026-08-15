@@ -635,6 +635,53 @@ body {
     margin-top: 4px;
 }
 
+/* PDF Upload */
+.pdf-upload-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.btn-upload {
+    padding: 8px 14px;
+    border: 1px dashed var(--primary);
+    border-radius: var(--radius-sm);
+    background: rgba(233, 30, 99, 0.08);
+    color: var(--primary-light);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-upload:hover {
+    background: rgba(233, 30, 99, 0.15);
+}
+
+.pdf-status {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.pdf-status.active {
+    color: #4caf50;
+}
+
+.btn-remove-pdf {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 82, 82, 0.2);
+    color: #ff5252;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.btn-remove-pdf:hover {
+    background: rgba(255, 82, 82, 0.3);
+}
+
 .setting-group {
     margin-bottom: 16px;
 }
