@@ -5,7 +5,7 @@ const DEFAULTS = {
     apiKey: '',
     userName: '',
     aiName: 'Liya',
-    model: 'meta-llama/llama-3.1-8b-instruct:free',
+    model: 'nvidia/nemotron-3-super-120b-a12b:free',
     temperature: 0.8,
     vibe: 'sweet',
     tone: 'casual',
