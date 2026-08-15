@@ -573,5 +573,53 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
+// === Mobile Keyboard Fix ===
+function handleMobileKeyboard() {
+    const chatMessages = $('chatMessages');
+    const inputArea = document.querySelector('.chat-input-area');
+    
+    // Use visualViewport API for accurate keyboard detection
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const keyboardHeight = window.innerHeight - window.visualViewport.height;
+            document.documentElement.style.setProperty('--keyboard-height', keyboardHeight + 'px');
+            
+            // Adjust the app container
+            const app = document.querySelector('.app');
+            app.style.height = window.visualViewport.height + 'px';
+            
+            // Scroll to bottom when keyboard opens
+            if (keyboardHeight > 0) {
+                setTimeout(() => scrollToBottom(), 100);
+            }
+        });
+
+        window.visualViewport.addEventListener('scroll', () => {
+            // Prevent page scroll when keyboard is open
+            window.scrollTo(0, 0);
+        });
+    }
+
+    // Fallback: listen for focus/blur on input
+    messageInput.addEventListener('focus', () => {
+        setTimeout(() => {
+            scrollToBottom();
+            // Prevent page from scrolling behind keyboard
+            window.scrollTo(0, 0);
+        }, 300);
+    });
+
+    messageInput.addEventListener('blur', () => {
+        // Reset height when keyboard closes
+        setTimeout(() => {
+            const app = document.querySelector('.app');
+            app.style.height = '100%';
+            window.scrollTo(0, 0);
+        }, 100);
+    });
+}
+
+handleMobileKeyboard();
+
 // === Start ===
 init();
