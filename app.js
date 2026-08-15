@@ -423,12 +423,7 @@ async function callOpenRouter(userMessage) {
             ],
             temperature: state.temperature,
             max_tokens: state.responseLength === 'short' ? 150 : state.responseLength === 'long' ? 800 : 400,
-            top_p: 0.9,
-            frequency_penalty: 0.3,
-            provider: {
-                require_parameters: true
-            },
-            transforms: ["middle-out"]
+            top_p: 0.9
         })
     });
 
