@@ -69,16 +69,8 @@ function generateResponse(userMsg) {
     const pdf = matchPdfContent(input);
     if (pdf) return pdf;
 
-    // 4. Smart pattern matching with FUZZY scoring
-    const pattern = matchPatternsScored(input, words, userMsg);
-    if (pattern) return pattern;
-
-    // 5. Topic-based intelligent response
-    const topicResponse = generateTopicResponse(input, words);
-    if (topicResponse) return topicResponse;
-
-    // 6. Mirror/echo response (acknowledges what they said)
-    return generateMirrorResponse(userMsg, words);
+    // 4. BRAIN ENGINE (30,000 word database + reasoning)
+    return generateFromBrain(userMsg);
 }
 
 function detectTopic(input) {
