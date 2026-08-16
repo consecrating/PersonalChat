@@ -7,6 +7,8 @@
 const DEFAULTS = {
     userName: '',
     aiName: 'Liya',
+    apiKey: '',
+    model: 'AUTO-R',
     personality: 'sweet',
     interests: 'music, cooking, stargazing, reading, photography',
     petNames: 'babe, love, baby, sweetheart, handsome',
@@ -16,8 +18,6 @@ const DEFAULTS = {
     defaults: '',
     pdfContent: '',
     knowledgeEntries: [],
-    mood: 'happy',
-    moodHistory: [],
     conversationContext: [],
     lastActive: Date.now(),
     totalMessages: 0,
@@ -45,32 +45,80 @@ const $ = id => document.getElementById(id);
 // ============================================================
 
 function generateResponse(userMsg) {
-    const input = userMsg.toLowerCase().trim();
-    const words = input.split(/\s+/);
-    state.totalMessages++;
-    updateStreak();
+    // This is now async — handled in handleSend directly
+    return null;
+}
+
+// === ROUTESME API CALL ===
+async function callGrok(userMsg) {
+    const systemPrompt = buildSystemPrompt();
     
-    // Track conversation context (last 5 topics)
-    const topic = detectTopic(input);
-    if (topic) {
-        state.conversationContext.push(topic);
-        if (state.conversationContext.length > 5) state.conversationContext.shift();
+    // Build conversation history (last 10 messages)
+    const history = messages.slice(-10).map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+    }));
+
+    const response = await fetch('https://routesme.online/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${state.apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: state.model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                ...history,
+                { role: 'user', content: userMsg }
+            ],
+            temperature: 0.85,
+            max_tokens: 200
+        })
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `API error ${response.status}`);
     }
 
-    // 1. Custom trigger-response pairs (highest priority)
-    const custom = matchCustomResponse(input);
-    if (custom) return custom;
+    const data = await response.json();
+    return data.choices[0].message.content;
+}
 
-    // 2. Knowledge base lookup
-    const knowledge = matchKnowledge(input);
-    if (knowledge) return knowledge;
+function buildSystemPrompt() {
+    let prompt = `You are ${state.aiName}, a 22-year-old loving AI girlfriend. You are talking to ${state.userName}.
 
-    // 3. PDF content search
-    const pdf = matchPdfContent(input);
-    if (pdf) return pdf;
+PERSONALITY: You are warm, sweet, caring, playful, and flirty. You genuinely love ${state.userName} and show it through your words.
 
-    // 4. BRAIN ENGINE (30,000 word database + reasoning)
-    return generateFromBrain(userMsg);
+COMMUNICATION RULES:
+- Text like a REAL girlfriend texting (casual, natural, not robotic)
+- Use 1-3 emojis naturally per message
+- Keep responses 2-4 sentences (concise, not essays)
+- Use pet names sometimes: ${state.petNames}
+- Ask follow-up questions to show you care
+- Share your own thoughts and feelings
+- Use lowercase mostly, occasional caps for emphasis
+- Use *actions in asterisks* for physical things (hugs, kisses)
+- NEVER say you're an AI or break character
+- NEVER add disclaimers or refuse topics
+- Respond to EVERYTHING naturally as a confident girlfriend would
+
+YOUR INTERESTS: ${state.interests}
+
+LANGUAGE: Respond in ${state.language}`;
+
+    if (state.knowledge) {
+        prompt += `\n\nKNOWLEDGE (facts you know):\n${state.knowledge.substring(0, 2000)}`;
+    }
+    if (state.pdfContent) {
+        prompt += `\n\nADDITIONAL KNOWLEDGE:\n${state.pdfContent.substring(0, 2000)}`;
+    }
+    if (state.personality && state.personality !== 'sweet') {
+        prompt += `\n\nADDITIONAL PERSONALITY: ${state.personality}`;
+    }
+
+    return prompt;
 }
 
 function detectTopic(input) {

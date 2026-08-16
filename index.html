@@ -16,8 +16,14 @@
             <div class="setup-card">
                 <div class="setup-avatar">💕</div>
                 <h1>Meet Liya</h1>
-                <p class="setup-desc">Your offline AI companion — no internet, no API needed ✨</p>
+                <p class="setup-desc">Your AI girlfriend powered by RoutesMe (FREE) ✨</p>
                 <div class="setup-form">
+                    <label for="apiKeyInput">RoutesMe API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="rm-...">
+                    <p class="setting-hint">
+                        Get FREE key: <a href="https://routesme.online/dashboard/api-keys" target="_blank">routesme.online/dashboard/api-keys</a>
+                    </p>
+                    
                     <label for="userNameInput">Your Name</label>
                     <input type="text" id="userNameInput" placeholder="What should Liya call you?">
                     <button id="startBtn" class="btn-primary">Start Chatting 💬</button>
@@ -74,6 +80,21 @@
 
                 <!-- Personality Tab -->
                 <div class="tab-content active" id="tab-personality">
+                    <div class="setting-group">
+                        <label>RoutesMe API Key</label>
+                        <input type="password" id="settingsApiKey" placeholder="rm-...">
+                        <p class="setting-hint"><a href="https://routesme.online/dashboard/api-keys" target="_blank">Get FREE key from RoutesMe</a></p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Model</label>
+                        <select id="settingsModel">
+                            <option value="AUTO-R">AUTO-R (Auto Router - Best) ⭐</option>
+                            <option value="GPT-5.6-Luna">GPT-5.6-Luna (Fast)</option>
+                            <option value="DeepSeek-V4-Flash-0731">DeepSeek V4 Flash</option>
+                            <option value="Claude-fable-5">Claude Fable 5</option>
+                            <option value="Kimi-k3">Kimi K3</option>
+                        </select>
+                    </div>
                     <div class="setting-group">
                         <label>Her Name</label>
                         <input type="text" id="settingsAiName" placeholder="Liya">
