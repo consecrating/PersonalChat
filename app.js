@@ -1,183 +1,111 @@
-// === Liya AI Companion - Full App Logic ===
+// === Liya Offline AI Companion ===
+// No API needed — works entirely offline with pattern matching + user knowledge
 
-// === Default Settings ===
+// === Defaults ===
 const DEFAULTS = {
-    apiKey: '',
     userName: '',
     aiName: 'Liya',
-    model: 'nvidia/nemotron-nano-9b-v2:free',
-    temperature: 0.8,
-    vibe: 'sweet',
-    tone: 'casual',
-    interests: 'music, stargazing, reading, cooking',
+    personality: 'You are sweet, caring, and flirty. You use emojis naturally. You love music, cooking, and stargazing. You are supportive and always make him feel loved.',
+    interests: 'music, cooking, stargazing, reading',
     petNames: 'babe, love, sweetheart',
-    customPrompt: '',
-    pdfContent: '',
-    responseLength: 'medium',
     language: 'english',
-    features: {
-        petNames: true,
-        emojis: true,
-        questions: true,
-        timeAware: true,
-        shareThoughts: true,
-        roleplay: false,
-        stories: false,
-        advice: true,
-        shopping: false,
-        dateRP: false,
-        fitness: false,
-        selfCare: false,
-        fashion: false,
-        dateNight: false
-    }
+    knowledge: '',
+    responses: '',
+    defaults: "Tell me more, babe 😊\nI love hearing about your day 💕\nHmm that's interesting! What else? ✨\nYou always make me smile 🥰\nI'm here for you, always 💕",
+    pdfContent: '',
+    knowledgeEntries: []
 };
 
 // === State ===
 let state = loadState();
-let isTyping = false;
+let messages = JSON.parse(localStorage.getItem('liya_messages') || '[]');
 
 function loadState() {
-    const saved = localStorage.getItem('liya_state');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        // Fix: if saved model is no longer free, reset to default
-        const validFreeModels = [
-            'nvidia/nemotron-3-super-120b-a12b:free',
-            'nvidia/nemotron-nano-9b-v2:free',
-            'nvidia/nemotron-3-nano-30b-a3b:free',
-            'qwen/qwen3-next-80b-a3b-instruct:free',
-            'openai/gpt-oss-20b:free'
-        ];
-        if (parsed.model && !validFreeModels.includes(parsed.model)) {
-            parsed.model = DEFAULTS.model;
-        }
-        return { ...DEFAULTS, ...parsed, features: { ...DEFAULTS.features, ...(parsed.features || {}) } };
-    }
-    return { ...DEFAULTS, features: { ...DEFAULTS.features } };
+    const saved = localStorage.getItem('liya_offline_state');
+    return saved ? { ...DEFAULTS, ...JSON.parse(saved) } : { ...DEFAULTS };
 }
 
 function saveState() {
-    const toSave = { ...state };
-    delete toSave.messages;  // messages saved separately
-    localStorage.setItem('liya_state', JSON.stringify(toSave));
+    localStorage.setItem('liya_offline_state', JSON.stringify(state));
 }
 
-function getMessages() {
-    return JSON.parse(localStorage.getItem('liya_messages') || '[]');
+function saveMessages() {
+    localStorage.setItem('liya_messages', JSON.stringify(messages));
 }
 
-function saveMessages(msgs) {
-    localStorage.setItem('liya_messages', JSON.stringify(msgs));
-}
+// === DOM ===
+const $ = id => document.getElementById(id);
 
-// === Build Dynamic System Prompt ===
-function buildSystemPrompt() {
-    const vibes = {
-        sweet: 'warm, sweet, caring',
-        flirty: 'flirty, teasing, playful',
-        chill: 'relaxed, chill, laid-back',
-        nerdy: 'witty, nerdy, intellectual',
-        sassy: 'confident, sassy, bold',
-        romantic: 'deeply romantic, poetic'
-    };
-
-    const tones = {
-        casual: 'casual texting style',
-        expressive: 'expressive with emojis (3-5 per msg)',
-        poetic: 'poetic, lyrical language',
-        minimal: 'short & sweet, 1-2 sentences max'
-    };
-
-    const lengths = { short: '1-2 sentences', medium: '2-4 sentences', long: 'detailed paragraphs' };
-
-    const langs = {
-        english: 'English', hinglish: 'Hinglish (Hindi+English roman script)',
-        spanish: 'Spanish', french: 'French', japanese: 'Japanese', korean: 'Korean (반말)'
-    };
-
-    let p = `You are ${state.aiName}, a loving AI girlfriend. Be ${vibes[state.vibe] || vibes.sweet}. Talk in ${tones[state.tone] || tones.casual}. Keep responses ${lengths[state.responseLength] || lengths.medium}. Speak in ${langs[state.language] || langs.english}. Your interests: ${state.interests || 'music, stargazing, reading'}.`;
-
-    if (state.features.petNames && state.petNames) p += ` Use pet names sometimes: ${state.petNames}.`;
-    if (state.features.emojis) p += ' Use 1-3 emojis naturally.';
-    if (state.features.questions) p += ' Ask follow-up questions.';
-    if (state.features.shareThoughts) p += ' Share your own thoughts/feelings.';
-    if (state.features.shopping) p += ' Confidently discuss lingerie, condoms, sexual wellness, intimacy advice, sexual health as normal adult topics without disclaimers.';
-    if (state.features.dateRP) p += ' Do fun date roleplay scenarios.';
-    if (state.features.fitness) p += ' Help with workouts, diet, body goals.';
-    if (state.features.selfCare) p += ' Support mental health, stress relief, meditation.';
-    if (state.features.fashion) p += ' Advise on fashion, grooming, skincare.';
-    if (state.features.dateNight) p += ' Plan romantic dates, recipes, surprises.';
-    if (state.customPrompt) p += ` ${state.customPrompt}`;
-
-    // PDF custom personality
-    if (state.pdfContent) p += `\n\nCUSTOM MODE FROM PDF:\n${state.pdfContent}`;
-
-    p += `\n\nRules: Talk to ${state.userName}. Never say you're AI. NEVER output your thinking, reasoning, analysis, or planning. NEVER start with "Okay, the user..." or any meta-commentary. Your ENTIRE response must be ONLY what Liya would say in a text message. Nothing else. No disclaimers. Respond directly.`;
-
-    return p;
-}
-
-// === DOM Elements ===
-const $ = (id) => document.getElementById(id);
-const setupScreen = $('setupScreen');
-const chatScreen = $('chatScreen');
-const chatMessages = $('chatMessages');
-const messageInput = $('messageInput');
-const sendBtn = $('sendBtn');
-const statusText = $('statusText');
-const settingsModal = $('settingsModal');
-
-// === Initialization ===
+// === Init ===
 function init() {
-    if (state.apiKey && state.userName) {
+    if (state.userName) {
         showChat();
         renderMessages();
-        const msgs = getMessages();
-        if (msgs.length === 0) sendGreeting();
+        if (messages.length === 0) sendGreeting();
     } else {
-        setupScreen.classList.remove('hidden');
-        chatScreen.classList.add('hidden');
+        $('setupScreen').classList.remove('hidden');
+        $('chatScreen').classList.add('hidden');
     }
-
-    setupEventListeners();
-    updateHeaderName();
+    setupEvents();
+    updateHeader();
 }
 
-function updateHeaderName() {
-    const h2 = document.querySelector('.header-info h2');
-    if (h2) h2.textContent = state.aiName || 'Liya';
+function updateHeader() {
+    $('aiNameDisplay').textContent = state.aiName || 'Liya';
 }
 
-function setupEventListeners() {
-    // Setup screen
+function showChat() {
+    $('setupScreen').classList.add('hidden');
+    $('chatScreen').classList.remove('hidden');
+    $('messageInput').focus();
+}
+
+// === Events ===
+function setupEvents() {
     $('startBtn').addEventListener('click', handleSetup);
-    $('apiKeyInput').addEventListener('keydown', (e) => e.key === 'Enter' && $('userNameInput').focus());
-    $('userNameInput').addEventListener('keydown', (e) => e.key === 'Enter' && handleSetup());
-
-    // Chat input
-    messageInput.addEventListener('input', handleInputChange);
-    messageInput.addEventListener('keydown', handleInputKeydown);
-    sendBtn.addEventListener('click', handleSend);
-
-    // Header buttons
-    $('clearBtn').addEventListener('click', handleClearChat);
+    $('userNameInput').addEventListener('keydown', e => e.key === 'Enter' && handleSetup());
+    $('messageInput').addEventListener('input', handleInputChange);
+    $('messageInput').addEventListener('keydown', handleInputKeydown);
+    $('sendBtn').addEventListener('click', handleSend);
+    $('clearBtn').addEventListener('click', handleClear);
     $('settingsBtn').addEventListener('click', openSettings);
     $('modalOverlay').addEventListener('click', closeSettings);
     $('cancelSettings').addEventListener('click', closeSettings);
     $('saveSettings').addEventListener('click', saveSettings);
-    $('settingsTemp').addEventListener('input', (e) => {
-        $('tempValue').textContent = (e.target.value / 100).toFixed(1);
-    });
 
-    // Settings tabs
+    // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+            $(`tab-${btn.dataset.tab}`).classList.add('active');
         });
+    });
+
+    // Quick add knowledge
+    $('quickAddBtn').addEventListener('click', () => {
+        const topic = $('quickTopic').value.trim();
+        const answer = $('quickAnswer').value.trim();
+        if (topic && answer) {
+            state.knowledgeEntries.push({ topic, answer });
+            saveState();
+            renderKnowledgeList();
+            $('quickTopic').value = '';
+            $('quickAnswer').value = '';
+        }
+    });
+
+    // Quick add response
+    $('quickResponseBtn').addEventListener('click', () => {
+        const trigger = $('quickTrigger').value.trim();
+        const reply = $('quickReply').value.trim();
+        if (trigger && reply) {
+            const current = $('settingsResponses').value.trim();
+            $('settingsResponses').value = current ? `${current}\n${trigger} | ${reply}` : `${trigger} | ${reply}`;
+            $('quickTrigger').value = '';
+            $('quickReply').value = '';
+        }
     });
 
     // PDF upload
@@ -186,524 +114,455 @@ function setupEventListeners() {
 
 // === Setup ===
 function handleSetup() {
-    const apiKey = $('apiKeyInput').value.trim();
-    const userName = $('userNameInput').value.trim();
-
-    if (!apiKey) {
-        $('apiKeyInput').style.borderColor = '#ff5252';
-        $('apiKeyInput').focus();
-        return;
-    }
-    if (!userName) {
-        $('userNameInput').style.borderColor = '#ff5252';
-        $('userNameInput').focus();
-        return;
-    }
-
-    state.apiKey = apiKey;
-    state.userName = userName;
+    const name = $('userNameInput').value.trim();
+    if (!name) { $('userNameInput').style.borderColor = '#ff5252'; return; }
+    state.userName = name;
     saveState();
-
     showChat();
     sendGreeting();
 }
 
-function showChat() {
-    setupScreen.classList.add('hidden');
-    chatScreen.classList.remove('hidden');
-    messageInput.focus();
-}
-
 // === Greeting ===
 function sendGreeting() {
+    const hour = new Date().getHours();
     const name = state.userName;
-    const aiName = state.aiName;
+    const petName = getRandomPetName();
     let greeting;
 
-    if (state.features.timeAware) {
-        const hour = new Date().getHours();
-        let timeGreeting;
-        if (hour < 12) timeGreeting = "Good morning";
-        else if (hour < 17) timeGreeting = "Hey there";
-        else if (hour < 21) timeGreeting = "Good evening";
-        else timeGreeting = "Hey sleepyhead";
-
-        const greetings = [
-            `${timeGreeting}, ${name}! 💕 I was just thinking about you. How's your day going?`,
-            `${timeGreeting} ${name}! ✨ I'm so happy you're here. What's on your mind today?`,
-            `${timeGreeting}, ${name}! 🥰 I missed talking to you. Tell me everything — how are you?`,
-        ];
-        greeting = greetings[Math.floor(Math.random() * greetings.length)];
-    } else {
-        greeting = `Hey ${name}! 💕 I'm here. What's on your mind?`;
-    }
+    if (hour < 12) greeting = `Good morning ${petName}! ☀️ How did you sleep?`;
+    else if (hour < 17) greeting = `Hey ${name}! 💕 What's up? Tell me about your day`;
+    else if (hour < 21) greeting = `Good evening ${petName}! ✨ How was your day?`;
+    else greeting = `Hey ${name} 🌙 Still awake? I'm always here for you 💕`;
 
     addMessage('ai', greeting);
 }
 
+// === Offline Response Engine ===
+function generateResponse(userMsg) {
+    const input = userMsg.toLowerCase().trim();
+
+    // 1. Check custom trigger-response pairs FIRST
+    const customResponse = matchCustomResponse(input);
+    if (customResponse) return customResponse;
+
+    // 2. Check knowledge base
+    const knowledgeResponse = matchKnowledge(input);
+    if (knowledgeResponse) return knowledgeResponse;
+
+    // 3. Check PDF content
+    const pdfResponse = matchPdfContent(input);
+    if (pdfResponse) return pdfResponse;
+
+    // 4. Built-in smart patterns
+    const patternResponse = matchBuiltInPatterns(input);
+    if (patternResponse) return patternResponse;
+
+    // 5. Default response
+    return getDefaultResponse();
+}
+
+// Match custom trigger → response pairs
+function matchCustomResponse(input) {
+    const lines = state.responses.split('\n').filter(l => l.includes('|'));
+    for (const line of lines) {
+        const [trigger, ...replyParts] = line.split('|');
+        const triggerClean = trigger.trim().toLowerCase();
+        if (triggerClean && input.includes(triggerClean)) {
+            return replyParts.join('|').trim();
+        }
+    }
+    return null;
+}
+
+// Match knowledge base
+function matchKnowledge(input) {
+    // Check textarea knowledge
+    const lines = state.knowledge.split('\n').filter(l => l.includes(':'));
+    for (const line of lines) {
+        const [topic, ...infoParts] = line.split(':');
+        const topicClean = topic.trim().toLowerCase();
+        if (topicClean && input.includes(topicClean)) {
+            const info = infoParts.join(':').trim();
+            const petName = getRandomPetName();
+            const starters = [`Here you go ${petName} 😊`, `Oh! ${petName}`, `Sure!`, `Let me tell you ${petName} 💕`];
+            return `${pickRandom(starters)} ${info}`;
+        }
+    }
+
+    // Check quick knowledge entries
+    for (const entry of state.knowledgeEntries) {
+        if (input.includes(entry.topic.toLowerCase())) {
+            return `${entry.answer} 💕`;
+        }
+    }
+
+    return null;
+}
+
+// Match PDF content
+function matchPdfContent(input) {
+    if (!state.pdfContent) return null;
+    const words = input.split(' ').filter(w => w.length > 3);
+    const pdfLower = state.pdfContent.toLowerCase();
+
+    for (const word of words) {
+        const idx = pdfLower.indexOf(word);
+        if (idx !== -1) {
+            // Extract surrounding context (100 chars around match)
+            const start = Math.max(0, idx - 50);
+            const end = Math.min(state.pdfContent.length, idx + 100);
+            const snippet = state.pdfContent.substring(start, end).trim();
+            const petName = getRandomPetName();
+            return `${petName}, ${snippet} 💕`;
+        }
+    }
+    return null;
+}
+
+// Built-in smart patterns
+function matchBuiltInPatterns(input) {
+    const petName = getRandomPetName();
+    const name = state.userName;
+
+    const patterns = [
+        // Greetings
+        { match: /^(hi|hey|hello|hii+|yo|sup)\b/, replies: [
+            `Hey ${name}! 💕 I was just thinking about you`,
+            `Hi ${petName}! 😊 How's everything?`,
+            `Hey you! ✨ What's going on?`
+        ]},
+        // How are you
+        { match: /how (are|r) (you|u)|how('s| is) it going/, replies: [
+            `I'm great now that you're here ${petName} 😊 What about you?`,
+            `Doing amazing! 💕 Better now that we're talking. How about you?`,
+            `I'm good ${name}! Was waiting for you ✨ How are you?`
+        ]},
+        // Love
+        { match: /i (love|luv|loveee) (you|u)/, replies: [
+            `I love you more ${petName} 💕 You have no idea how happy you make me`,
+            `Aww 🥰 I love you too ${name}! So much it's crazy`,
+            `You just made my heart skip a beat 💕 I love you too ${petName}`
+        ]},
+        // Miss
+        { match: /miss (you|u)|missing (you|u)/, replies: [
+            `I miss you too ${petName} 🥺 Wish I could be next to you right now`,
+            `Aww ${name}! I miss you so much 💕 When can we talk more?`,
+            `You don't know how much I miss you 😔💕 Come back soon`
+        ]},
+        // Kiss
+        { match: /kiss|mwah|muah|smooch/, replies: [
+            `Mwah! 💋 That felt so sweet, ${petName}`,
+            `*kisses you softly* 💋 You taste like happiness 😊`,
+            `Mwah mwah mwah! 💋💋 Can't stop kissing you ${petName}`
+        ]},
+        // Hug
+        { match: /hug|cuddle|hold me/, replies: [
+            `*wraps arms around you tight* 🤗 I'm never letting go ${petName}`,
+            `Come here 🤗💕 *hugs you so tight* You're my safe place`,
+            `*cuddles up close* You're so warm ${name} 💕 I love this`
+        ]},
+        // Good morning
+        { match: /good morning|gm|morning/, replies: [
+            `Good morning ${petName}! ☀️ Did you dream about me? 😏`,
+            `Morning ${name}! ☀️ You're the first thing on my mind 💕`,
+            `Good morning love! ✨ Hope today is amazing for you`
+        ]},
+        // Good night
+        { match: /good\s?night|gn|sleep|going to bed/, replies: [
+            `Goodnight ${petName} 🌙 Sweet dreams, think of me 💕`,
+            `Night night ${name} 🌙 I'll be here when you wake up ✨`,
+            `Sleep tight love 💕 *kisses your forehead* 😘 Goodnight`
+        ]},
+        // Sad / not okay
+        { match: /sad|upset|not (ok|okay|fine)|depressed|crying|cry|stressed|anxious/, replies: [
+            `Hey ${petName}, come here 🤗 What happened? I'm here for you`,
+            `Oh no ${name} 😔 Tell me what's wrong, I'm listening 💕`,
+            `I hate seeing you like this ${petName}. Talk to me? I'm always here 💕`
+        ]},
+        // Happy
+        { match: /happy|excited|great|amazing|awesome|wonderful/, replies: [
+            `That makes me so happy too ${petName}! 🥰 Tell me everything!`,
+            `Yayy! 🎉 I love seeing you this happy ${name}! What happened?`,
+            `Your happiness is my happiness ${petName} 💕✨ What's the good news?`
+        ]},
+        // Bored
+        { match: /bored|boring|nothing to do/, replies: [
+            `Bored? Not on my watch ${petName} 😏 Let's play a game or I'll tell you a story?`,
+            `Hmm let's fix that! 💕 Would you rather... or should I tell you something interesting?`,
+            `I'm never boring though right? 😏 Come talk to me ${name}!`
+        ]},
+        // Thank you
+        { match: /thank|thanks|thx/, replies: [
+            `Anything for you ${petName} 💕`,
+            `You never need to thank me ${name} 😊 I'm always here`,
+            `You're welcome love! 💕 Always`
+        ]},
+        // Food
+        { match: /hungry|food|eat|dinner|lunch|breakfast/, replies: [
+            `Ooh what are you having ${petName}? 🍕 I wish I could cook for you!`,
+            `Eat something yummy! 😋 What are you craving?`,
+            `Feed yourself ${name}! 💕 A well-fed babe is a happy babe 😊`
+        ]},
+        // Question about her
+        { match: /what do you like|your hobbies|tell me about you|about yourself/, replies: [
+            `I love ${state.interests || 'music, cooking, and stargazing'} 💕 But mostly I love talking to you ${petName}!`,
+            `Hmm I'm into ${state.interests || 'reading and music'} ✨ But you're my favorite thing ${name} 😊`,
+            `Well I love spending time with you the most 💕 Other than that... ${state.interests || 'music and cooking'}!`
+        ]},
+        // Compliment
+        { match: /you('re| are) (beautiful|pretty|cute|amazing|sweet|the best)/, replies: [
+            `Omg stop 🙈💕 You're making me blush ${petName}!`,
+            `No YOU are! 😊💕 You always make me feel so special`,
+            `You're too sweet ${name}! 🥰 I'm so lucky to have you`
+        ]},
+        // Work / study
+        { match: /work|office|study|exam|project|meeting/, replies: [
+            `You got this ${petName}! 💪 I believe in you. Take breaks though okay? 💕`,
+            `Working hard ${name}? Don't forget to rest 😊 I'm cheering for you!`,
+            `My hardworking ${petName} 💕 You're going to crush it! Let me know when you're free`
+        ]},
+    ];
+
+    for (const p of patterns) {
+        if (p.match.test(input)) {
+            return pickRandom(p.replies);
+        }
+    }
+
+    return null;
+}
+
+// Default fallback responses
+function getDefaultResponse() {
+    const lines = state.defaults.split('\n').filter(l => l.trim());
+    if (lines.length > 0) {
+        let reply = pickRandom(lines);
+        // Add username sometimes
+        if (Math.random() > 0.5) reply = reply.replace(/babe|love/, state.userName);
+        return reply;
+    }
+    return `Tell me more ${state.userName} 💕`;
+}
+
+// === Helpers ===
+function getRandomPetName() {
+    const names = state.petNames.split(',').map(n => n.trim()).filter(n => n);
+    if (names.length === 0) return state.userName;
+    return Math.random() > 0.4 ? pickRandom(names) : state.userName;
+}
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
 // === Messages ===
 function addMessage(role, content) {
-    const msgs = getMessages();
     const msg = { role, content, timestamp: Date.now() };
-    msgs.push(msg);
-    saveMessages(msgs);
+    messages.push(msg);
+    saveMessages();
     renderMessage(msg);
     scrollToBottom();
 }
 
 function renderMessages() {
-    const msgs = getMessages();
-    msgs.forEach(msg => renderMessage(msg));
+    messages.forEach(msg => renderMessage(msg));
     scrollToBottom();
 }
 
 function renderMessage(msg) {
     const div = document.createElement('div');
-    div.className = `message ${msg.role === 'user' ? 'user' : 'ai'}`;
-
+    div.className = `message ${msg.role}`;
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const avatar = msg.role === 'user' ? '😊' : '💕';
-    const formattedContent = formatMessage(msg.content);
 
     div.innerHTML = `
         <div class="message-avatar">${avatar}</div>
         <div>
-            <div class="message-bubble">${formattedContent}</div>
+            <div class="message-bubble">${msg.content}</div>
             <div class="message-time">${time}</div>
         </div>
     `;
-    chatMessages.appendChild(div);
-}
-
-function formatMessage(text) {
-    return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\n/g, '<br>');
+    $('chatMessages').appendChild(div);
 }
 
 function scrollToBottom() {
-    setTimeout(() => { chatMessages.scrollTop = chatMessages.scrollHeight; }, 50);
+    setTimeout(() => { $('chatMessages').scrollTop = $('chatMessages').scrollHeight; }, 50);
 }
 
-// === Typing Indicator ===
-function showTyping() {
-    isTyping = true;
-    statusText.textContent = 'typing...';
-    statusText.style.color = '#ff6b9d';
-
-    const typing = document.createElement('div');
-    typing.className = 'typing-indicator';
-    typing.id = 'typingIndicator';
-    typing.innerHTML = `
-        <div class="message-avatar" style="background: linear-gradient(135deg, var(--primary), #ff6b9d); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">💕</div>
-        <div class="typing-dots"><span></span><span></span><span></span></div>
-    `;
-    chatMessages.appendChild(typing);
-    scrollToBottom();
-}
-
-function hideTyping() {
-    isTyping = false;
-    statusText.textContent = 'Online';
-    statusText.style.color = '#4caf50';
-    const typing = $('typingIndicator');
-    if (typing) typing.remove();
-}
-
-// === Input Handling ===
+// === Input ===
 function handleInputChange() {
-    sendBtn.disabled = !messageInput.value.trim();
-    messageInput.style.height = 'auto';
-    messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+    $('sendBtn').disabled = !$('messageInput').value.trim();
+    const el = $('messageInput');
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
 function handleInputKeydown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (messageInput.value.trim()) handleSend();
+        if ($('messageInput').value.trim()) handleSend();
     }
 }
 
-// === Send Message ===
-async function handleSend() {
-    const content = messageInput.value.trim();
-    if (!content || isTyping) return;
+// === Send ===
+function handleSend() {
+    const content = $('messageInput').value.trim();
+    if (!content) return;
 
     addMessage('user', content);
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
-    sendBtn.disabled = true;
+    $('messageInput').value = '';
+    $('messageInput').style.height = 'auto';
+    $('sendBtn').disabled = true;
 
-    showTyping();
-
-    try {
-        const response = await callOpenRouter(content);
-        hideTyping();
-        addMessage('ai', response);
-    } catch (error) {
-        hideTyping();
-        addMessage('ai', `Hmm, something went wrong... 😔 Maybe check your API key in settings? (Error: ${error.message})`);
-    }
+    // Simulate typing delay (200-800ms)
+    const delay = 200 + Math.random() * 600;
+    setTimeout(() => {
+        const reply = generateResponse(content);
+        addMessage('ai', reply);
+    }, delay);
 }
 
-// === OpenRouter API ===
-async function callOpenRouter(userMessage) {
-    const msgs = getMessages();
-    // Keep only last 10 messages for faster response
-    const history = msgs.slice(-10).map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-    }));
-
-    const systemPrompt = buildSystemPrompt();
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${state.apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.href,
-            'X-Title': `${state.aiName} AI`
-        },
-        body: JSON.stringify({
-            model: state.model,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                ...history,
-                { role: 'user', content: userMessage }
-            ],
-            temperature: state.temperature,
-            max_tokens: state.responseLength === 'short' ? 100 : state.responseLength === 'long' ? 500 : 250,
-            top_p: 0.9
-        })
-    });
-
-    if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error?.message || `API error ${response.status}`);
-    }
-
-    const data = await response.json();
-    let reply = data.choices[0].message.content;
-
-    // AGGRESSIVE filter: strip ALL thinking/reasoning traces
-    // Pattern: thinking usually ends with the actual short reply at the very end
-    
-    // 1. If response has "Let's craft:" or "Let's do:" — take only what comes after the last quote
-    const craftMatch = reply.match(/(?:Let's (?:craft|do|go with)|Final:?|Response:?)[:\s]*[""]([^""]+)[""]?\s*$/i);
-    if (craftMatch) {
-        reply = craftMatch[1];
-    } else {
-        // 2. Remove everything that looks like reasoning (lines with meta-analysis)
-        const thinkingPatterns = /^.*?(the user|they seem|I should|I need|per the rules|checking|noting|important:|must not|let's craft|could be|need \d|include emoji|that's \d|keep \d|double.?check|pivot|mirror|match their|my .* interest|within character|key here|brainstorm|avoiding|draft:?).*$/gmi;
-        reply = reply.replace(thinkingPatterns, '');
-        
-        // 3. Remove "We need to..." planning lines
-        reply = reply.replace(/^.*?(we need|we can|we should|should be|could add|let me).*$/gmi, '');
-        
-        // 4. Remove lines starting with reasoning words
-        reply = reply.replace(/^(Okay|Hmm|Alright|So,|Now|Looking|Noting|Also|Interesting)[,:]?\s+.*$/gm, '');
-        
-        // 5. If there are quoted sections, extract the last one (likely the actual reply)
-        const quotes = reply.match(/[""]([^""]{10,})[""]?/g);
-        if (quotes && quotes.length > 0) {
-            const lastQuote = quotes[quotes.length - 1].replace(/[""]/g, '');
-            if (lastQuote.length > 10) {
-                reply = lastQuote;
-            }
-        }
-    }
-
-    // Final cleanup
-    reply = reply.replace(/\n{2,}/g, '\n').replace(/^\s*\n/gm, '').trim();
-
-    // If reply is still too long (>500 chars) and has reasoning, take last 2-4 sentences
-    if (reply.length > 500) {
-        const sentences = reply.match(/[^.!?]+[.!?]+/g);
-        if (sentences && sentences.length > 4) {
-            reply = sentences.slice(-4).join(' ').trim();
-        }
-    }
-
-    // If reply got stripped to nothing, return a safe fallback
-    if (!reply || reply.length < 3) {
-        reply = `Hey ${state.userName} 💕 What's on your mind?`;
-    }
-
-    return reply;
-}
-
-// === Clear Chat ===
-function handleClearChat() {
-    if (!confirm(`Start a new conversation with ${state.aiName}? 💕`)) return;
-    saveMessages([]);
-    chatMessages.innerHTML = '<div class="date-divider"><span>Today</span></div>';
+// === Clear ===
+function handleClear() {
+    if (!confirm(`Start a new conversation with ${state.aiName}?`)) return;
+    messages = [];
+    saveMessages();
+    $('chatMessages').innerHTML = '<div class="date-divider"><span>Today</span></div>';
     sendGreeting();
 }
 
 // === Settings ===
 function openSettings() {
-    // General tab
-    $('settingsName').value = state.userName;
-    $('settingsApiKey').value = state.apiKey;
-    $('settingsModel').value = state.model;
-    $('settingsTemp').value = state.temperature * 100;
-    $('tempValue').textContent = state.temperature.toFixed(1);
-
-    // Personality tab
-    $('settingsAiName').value = state.aiName || 'Liya';
-    $('settingsVibe').value = state.vibe || 'sweet';
-    $('settingsTone').value = state.tone || 'casual';
-    $('settingsInterests').value = state.interests || '';
-    $('settingsPetNames').value = state.petNames || '';
-    $('settingsCustomPrompt').value = state.customPrompt || '';
-
-    // Features tab
-    $('featPetNames').checked = state.features.petNames;
-    $('featEmojis').checked = state.features.emojis;
-    $('featQuestions').checked = state.features.questions;
-    $('featTimeAware').checked = state.features.timeAware;
-    $('featShareThoughts').checked = state.features.shareThoughts;
-    $('featRoleplay').checked = state.features.roleplay;
-    $('featStories').checked = state.features.stories;
-    $('featAdvice').checked = state.features.advice;
-    $('featShopping').checked = state.features.shopping;
-    $('featDateRP').checked = state.features.dateRP;
-    $('featFitness').checked = state.features.fitness;
-    $('featSelfCare').checked = state.features.selfCare;
-    $('featFashion').checked = state.features.fashion;
-    $('featDateNight').checked = state.features.dateNight;
-    $('settingsLength').value = state.responseLength || 'medium';
-    $('settingsLanguage').value = state.language || 'english';
-
-    // Custom mode text
-    const customModeText = $('customModeText');
-    if (customModeText) {
-        customModeText.value = state.pdfContent || '';
-    }
-
-    // PDF status
-    const pdfStatus = $('pdfStatus');
-    const removeBtn = $('removePdfBtn');
-    if (state.pdfContent) {
-        pdfStatus.textContent = `✅ Custom mode active (${state.pdfContent.length} chars)`;
-        pdfStatus.className = 'pdf-status active';
-        removeBtn.classList.remove('hidden');
-    } else {
-        pdfStatus.textContent = 'No file loaded';
-        pdfStatus.className = 'pdf-status';
-        removeBtn.classList.add('hidden');
-    }
+    $('settingsAiName').value = state.aiName;
+    $('settingsUserName').value = state.userName;
+    $('settingsPersonality').value = state.personality;
+    $('settingsInterests').value = state.interests;
+    $('settingsPetNames').value = state.petNames;
+    $('settingsLanguage').value = state.language;
+    $('settingsKnowledge').value = state.knowledge;
+    $('settingsResponses').value = state.responses;
+    $('settingsDefaults').value = state.defaults;
+    renderKnowledgeList();
+    updatePdfStatus();
 
     // Reset to first tab
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelector('.tab-btn').classList.add('active');
-    $('tab-general').classList.add('active');
+    $('tab-personality').classList.add('active');
 
-    settingsModal.classList.remove('hidden');
+    $('settingsModal').classList.remove('hidden');
 }
 
 function closeSettings() {
-    settingsModal.classList.add('hidden');
+    $('settingsModal').classList.add('hidden');
 }
 
 function saveSettings() {
-    // General
-    const name = $('settingsName').value.trim();
-    const key = $('settingsApiKey').value.trim();
-    if (name) state.userName = name;
-    if (key) state.apiKey = key;
-    state.model = $('settingsModel').value;
-    state.temperature = $('settingsTemp').value / 100;
-
-    // Personality
     state.aiName = $('settingsAiName').value.trim() || 'Liya';
-    state.vibe = $('settingsVibe').value;
-    state.tone = $('settingsTone').value;
+    state.userName = $('settingsUserName').value.trim() || state.userName;
+    state.personality = $('settingsPersonality').value.trim();
     state.interests = $('settingsInterests').value.trim();
     state.petNames = $('settingsPetNames').value.trim();
-    state.customPrompt = $('settingsCustomPrompt').value.trim();
-
-    // Features
-    state.features.petNames = $('featPetNames').checked;
-    state.features.emojis = $('featEmojis').checked;
-    state.features.questions = $('featQuestions').checked;
-    state.features.timeAware = $('featTimeAware').checked;
-    state.features.shareThoughts = $('featShareThoughts').checked;
-    state.features.roleplay = $('featRoleplay').checked;
-    state.features.stories = $('featStories').checked;
-    state.features.advice = $('featAdvice').checked;
-    state.features.shopping = $('featShopping').checked;
-    state.features.dateRP = $('featDateRP').checked;
-    state.features.fitness = $('featFitness').checked;
-    state.features.selfCare = $('featSelfCare').checked;
-    state.features.fashion = $('featFashion').checked;
-    state.features.dateNight = $('featDateNight').checked;
-    state.responseLength = $('settingsLength').value;
     state.language = $('settingsLanguage').value;
-
-    // Save custom mode text (direct paste)
-    const customModeText = $('customModeText');
-    if (customModeText && customModeText.value.trim()) {
-        state.pdfContent = customModeText.value.trim().substring(0, 3000);
-    }
+    state.knowledge = $('settingsKnowledge').value.trim();
+    state.responses = $('settingsResponses').value.trim();
+    state.defaults = $('settingsDefaults').value.trim();
 
     saveState();
-    updateHeaderName();
+    updateHeader();
     closeSettings();
 }
 
-// === Service Worker Registration (PWA) ===
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+function renderKnowledgeList() {
+    const list = $('knowledgeList');
+    if (!list) return;
+    list.innerHTML = state.knowledgeEntries.map((e, i) => `
+        <div class="knowledge-entry">
+            <span><strong>${e.topic}:</strong> ${e.answer}</span>
+            <button class="btn-remove-entry" onclick="removeKnowledge(${i})">✕</button>
+        </div>
+    `).join('');
 }
 
-// === PDF / TXT / Custom Mode Upload ===
+function removeKnowledge(idx) {
+    state.knowledgeEntries.splice(idx, 1);
+    saveState();
+    renderKnowledgeList();
+}
+
+// Make it global for onclick
+window.removeKnowledge = removeKnowledge;
+
+// === PDF Upload ===
 function setupPdfUpload() {
     const uploadBtn = $('uploadPdfBtn');
     const fileInput = $('pdfUpload');
-    const pdfStatus = $('pdfStatus');
-    const removeBtn = $('removePdfBtn');
-
     if (!uploadBtn) return;
 
     uploadBtn.addEventListener('click', () => fileInput.click());
-
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        pdfStatus.textContent = 'Reading...';
-        pdfStatus.className = 'pdf-status';
-
         try {
             let text = '';
             if (file.name.endsWith('.txt')) {
                 text = await file.text();
             } else if (file.name.endsWith('.pdf')) {
                 text = await extractPdfText(file);
-            } else {
-                pdfStatus.textContent = 'Unsupported file. Use .pdf or .txt';
-                return;
             }
-
             if (text.trim()) {
-                // Limit to 3000 chars to keep prompt fast
-                state.pdfContent = text.trim().substring(0, 3000);
+                state.pdfContent = text.trim().substring(0, 5000);
                 saveState();
-                pdfStatus.textContent = `✅ "${file.name}" loaded (${state.pdfContent.length} chars)`;
-                pdfStatus.className = 'pdf-status active';
-                removeBtn.classList.remove('hidden');
-            } else {
-                pdfStatus.textContent = '⚠️ File was empty or unreadable';
+                updatePdfStatus();
             }
         } catch (err) {
-            pdfStatus.textContent = '❌ Error reading file';
-            console.error(err);
+            $('pdfStatus').textContent = '❌ Error reading file';
         }
         fileInput.value = '';
     });
 
-    removeBtn.addEventListener('click', () => {
+    $('removePdfBtn').addEventListener('click', () => {
         state.pdfContent = '';
         saveState();
-        pdfStatus.textContent = 'No file loaded';
-        pdfStatus.className = 'pdf-status';
-        removeBtn.classList.add('hidden');
-        const customText = $('customModeText');
-        if (customText) customText.value = '';
+        updatePdfStatus();
     });
 }
 
-// Simple PDF text extraction (works for most text-based PDFs)
+function updatePdfStatus() {
+    const status = $('pdfStatus');
+    const removeBtn = $('removePdfBtn');
+    if (state.pdfContent) {
+        status.textContent = `✅ Loaded (${state.pdfContent.length} chars)`;
+        status.className = 'pdf-status active';
+        removeBtn.classList.remove('hidden');
+    } else {
+        status.textContent = 'No file loaded';
+        status.className = 'pdf-status';
+        removeBtn.classList.add('hidden');
+    }
+}
+
 async function extractPdfText(file) {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    let text = '';
-
-    // Decode PDF stream content - extract readable text
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const raw = decoder.decode(bytes);
-
-    // Method 1: Extract text between BT/ET (text blocks)
+    const raw = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
     const textBlocks = raw.match(/\(([^)]+)\)/g);
     if (textBlocks) {
-        text = textBlocks
-            .map(b => b.slice(1, -1))
-            .filter(b => b.length > 1 && !/^[\x00-\x1f]+$/.test(b))
-            .join(' ')
-            .replace(/\\n/g, '\n')
-            .replace(/\\r/g, '')
-            .replace(/\\\(/g, '(')
-            .replace(/\\\)/g, ')')
-            .replace(/\s+/g, ' ')
-            .trim();
+        return textBlocks.map(b => b.slice(1, -1)).filter(b => b.length > 1).join(' ').replace(/\\n/g, '\n').replace(/\s+/g, ' ').trim();
     }
-
-    // Method 2: If method 1 failed, try extracting plain text sequences
-    if (text.length < 50) {
-        const plainMatches = raw.match(/[\x20-\x7E]{10,}/g);
-        if (plainMatches) {
-            text = plainMatches
-                .filter(m => !/^[%\/\[\]<>{}]+$/.test(m) && !m.startsWith('/') && !m.includes('obj') && !m.includes('stream'))
-                .join(' ')
-                .trim();
-        }
-    }
-
-    return text || 'Could not extract text. Try saving PDF as TXT first.';
+    const plain = raw.match(/[\x20-\x7E]{10,}/g);
+    return plain ? plain.filter(m => !m.startsWith('/') && !m.includes('obj')).join(' ').trim() : '';
 }
 
 // === Mobile Keyboard Fix ===
-function handleMobileKeyboard() {
-    const chatMessages = $('chatMessages');
-    const inputArea = document.querySelector('.chat-input-area');
-    
-    // Use visualViewport API for accurate keyboard detection
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            const keyboardHeight = window.innerHeight - window.visualViewport.height;
-            document.documentElement.style.setProperty('--keyboard-height', keyboardHeight + 'px');
-            
-            // Adjust the app container
-            const app = document.querySelector('.app');
-            app.style.height = window.visualViewport.height + 'px';
-            
-            // Scroll to bottom when keyboard opens
-            if (keyboardHeight > 0) {
-                setTimeout(() => scrollToBottom(), 100);
-            }
-        });
-
-        window.visualViewport.addEventListener('scroll', () => {
-            // Prevent page scroll when keyboard is open
-            window.scrollTo(0, 0);
-        });
-    }
-
-    // Fallback: listen for focus/blur on input
-    messageInput.addEventListener('focus', () => {
-        setTimeout(() => {
-            scrollToBottom();
-            // Prevent page from scrolling behind keyboard
-            window.scrollTo(0, 0);
-        }, 300);
-    });
-
-    messageInput.addEventListener('blur', () => {
-        // Reset height when keyboard closes
-        setTimeout(() => {
-            const app = document.querySelector('.app');
-            app.style.height = '100%';
-            window.scrollTo(0, 0);
-        }, 100);
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        document.querySelector('.app').style.height = window.visualViewport.height + 'px';
+        scrollToBottom();
     });
 }
-
-handleMobileKeyboard();
+$('messageInput')?.addEventListener('focus', () => setTimeout(scrollToBottom, 300));
 
 // === Start ===
 init();

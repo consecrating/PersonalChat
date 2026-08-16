@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Liya ❤️ AI Companion</title>
+    <title>Liya ❤️ Offline Companion</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#e91e63">
+    <meta name="theme-color" content="#0d1b2a">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💕</text></svg>">
 </head>
 <body>
     <div class="app">
-        <!-- API Key Screen -->
+        <!-- Setup Screen -->
         <div class="setup-screen" id="setupScreen">
             <div class="setup-card">
                 <div class="setup-avatar">💕</div>
                 <h1>Meet Liya</h1>
-                <p class="setup-desc">Your sweet, caring AI companion who's always here for you ✨</p>
+                <p class="setup-desc">Your offline AI companion — no internet, no API needed ✨</p>
                 <div class="setup-form">
-                    <label for="apiKeyInput">OpenRouter API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="sk-or-v1-...">
-                    <p class="setup-hint">Get your free key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></p>
-                    
                     <label for="userNameInput">Your Name</label>
                     <input type="text" id="userNameInput" placeholder="What should Liya call you?">
-                    
                     <button id="startBtn" class="btn-primary">Start Chatting 💬</button>
                 </div>
             </div>
@@ -41,8 +34,8 @@
                         <span class="online-dot"></span>
                     </div>
                     <div class="header-info">
-                        <h2>Liya</h2>
-                        <span class="status-text" id="statusText">Online</span>
+                        <h2 id="aiNameDisplay">Liya</h2>
+                        <span class="status-text">Offline Mode ⚡</span>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -72,177 +65,92 @@
             <div class="modal-overlay" id="modalOverlay"></div>
             <div class="modal-content settings-panel">
                 <h3>⚙️ Settings</h3>
-                
-                <div class="settings-tabs">
-                    <button class="tab-btn active" data-tab="general">General</button>
-                    <button class="tab-btn" data-tab="personality">Personality</button>
-                    <button class="tab-btn" data-tab="features">Features</button>
-                </div>
 
-                <!-- General Tab -->
-                <div class="tab-content active" id="tab-general">
-                    <div class="setting-group">
-                        <label>Your Name</label>
-                        <input type="text" id="settingsName" placeholder="What should Liya call you?">
-                    </div>
-                    <div class="setting-group">
-                        <label>API Key</label>
-                        <input type="password" id="settingsApiKey" placeholder="sk-or-v1-...">
-                    </div>
-                    <div class="setting-group">
-                        <label>AI Model</label>
-                        <select id="settingsModel">
-                            <option value="nvidia/nemotron-nano-9b-v2:free">NVIDIA Nemotron Nano 9B (Free - Fast) ⭐</option>
-                            <option value="nvidia/nemotron-3-nano-30b-a3b:free">NVIDIA Nemotron Nano 30B (Free - Balanced)</option>
-                            <option value="openai/gpt-oss-20b:free">OpenAI GPT-OSS 20B (Free - Fast)</option>
-                            <option value="qwen/qwen3-next-80b-a3b-instruct:free">Qwen3 Next 80B (Free - Multilingual)</option>
-                            <option value="nvidia/nemotron-3-super-120b-a12b:free">NVIDIA Nemotron 3 Super 120B (Free - Smart but Slow)</option>
-                        </select>
-                    </div>
-                    <div class="setting-group">
-                        <label>Creativity <span class="range-value" id="tempValue">0.8</span></label>
-                        <input type="range" id="settingsTemp" min="0" max="100" value="80">
-                        <p class="setting-hint">Low = focused answers, High = more creative/random</p>
-                    </div>
+                <div class="settings-tabs">
+                    <button class="tab-btn active" data-tab="personality">Personality</button>
+                    <button class="tab-btn" data-tab="knowledge">Knowledge</button>
+                    <button class="tab-btn" data-tab="responses">Responses</button>
                 </div>
 
                 <!-- Personality Tab -->
-                <div class="tab-content" id="tab-personality">
+                <div class="tab-content active" id="tab-personality">
                     <div class="setting-group">
-                        <label>Liya's Name</label>
+                        <label>Her Name</label>
                         <input type="text" id="settingsAiName" placeholder="Liya">
-                        <p class="setting-hint">Rename your companion to anything you like</p>
                     </div>
                     <div class="setting-group">
-                        <label>Personality Vibe</label>
-                        <select id="settingsVibe">
-                            <option value="sweet">💕 Sweet & Caring</option>
-                            <option value="flirty">😘 Flirty & Playful</option>
-                            <option value="chill">😎 Chill & Laid-back</option>
-                            <option value="nerdy">🤓 Nerdy & Witty</option>
-                            <option value="sassy">💅 Sassy & Confident</option>
-                            <option value="romantic">🌹 Romantic & Deep</option>
-                        </select>
+                        <label>Your Name</label>
+                        <input type="text" id="settingsUserName">
                     </div>
                     <div class="setting-group">
-                        <label>How she talks</label>
-                        <select id="settingsTone">
-                            <option value="casual">Casual (texting style)</option>
-                            <option value="expressive">Expressive (lots of emojis)</option>
-                            <option value="poetic">Poetic (lyrical & beautiful)</option>
-                            <option value="minimal">Minimal (short & sweet)</option>
-                        </select>
+                        <label>Personality Instructions</label>
+                        <textarea id="settingsPersonality" rows="5" placeholder="Describe how she should behave...&#10;&#10;Example:&#10;You are sweet, caring, and flirty. You use emojis. You call him babe and love. You love music and cooking."></textarea>
+                        <p class="setting-hint">This defines how Liya talks and behaves</p>
                     </div>
                     <div class="setting-group">
                         <label>Her Interests (comma separated)</label>
-                        <input type="text" id="settingsInterests" placeholder="music, stargazing, cooking, anime">
-                        <p class="setting-hint">Things she'll talk about and relate to</p>
+                        <input type="text" id="settingsInterests" placeholder="music, cooking, stargazing, anime">
                     </div>
                     <div class="setting-group">
                         <label>Pet Names She Uses</label>
-                        <input type="text" id="settingsPetNames" placeholder="babe, love, sweetheart, cutie">
-                        <p class="setting-hint">Leave empty for no pet names</p>
-                    </div>
-                    <div class="setting-group">
-                        <label>Custom Instructions</label>
-                        <textarea id="settingsCustomPrompt" rows="3" placeholder="Add any extra personality details... e.g. 'She loves dark humor' or 'She speaks a bit of Spanish'"></textarea>
-                        <p class="setting-hint">Extra instructions to shape her personality</p>
-                    </div>
-                </div>
-
-                <!-- Features Tab -->
-                <div class="tab-content" id="tab-features">
-                    <div class="setting-group">
-                        <label>📄 Custom Mode (Personality/Knowledge)</label>
-                        <div class="pdf-upload-area">
-                            <input type="file" id="pdfUpload" accept=".pdf,.txt" hidden>
-                            <button class="btn-upload" id="uploadPdfBtn">📎 Upload PDF / TXT</button>
-                            <span class="pdf-status" id="pdfStatus">No file loaded</span>
-                            <button class="btn-remove-pdf hidden" id="removePdfBtn">✕ Remove</button>
-                        </div>
-                        <textarea id="customModeText" rows="4" placeholder="Or paste custom instructions directly here...&#10;&#10;Example: 'You are a fitness coach named Max. Only discuss workouts and nutrition. Be strict and motivating.'"></textarea>
-                        <p class="setting-hint">Upload a PDF/TXT file OR paste text directly. This becomes Liya's new personality & knowledge base.</p>
-                    </div>
-
-                    <div class="setting-group">
-                        <label>Features & Behaviors</label>
-                        <div class="toggle-list">
-                            <div class="toggle-item">
-                                <span>💬 Use pet names</span>
-                                <label class="toggle"><input type="checkbox" id="featPetNames" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>😊 Use emojis</span>
-                                <label class="toggle"><input type="checkbox" id="featEmojis" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>❓ Ask follow-up questions</span>
-                                <label class="toggle"><input type="checkbox" id="featQuestions" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🌙 Time-aware greetings</span>
-                                <label class="toggle"><input type="checkbox" id="featTimeAware" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>💭 Share her own thoughts/day</span>
-                                <label class="toggle"><input type="checkbox" id="featShareThoughts" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🎭 Roleplay friendly</span>
-                                <label class="toggle"><input type="checkbox" id="featRoleplay"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>📖 Tell stories & adventures</span>
-                                <label class="toggle"><input type="checkbox" id="featStories"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🧠 Give advice & wisdom</span>
-                                <label class="toggle"><input type="checkbox" id="featAdvice" checked><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🛍️ Intimate shopping advisor (lingerie, wellness)</span>
-                                <label class="toggle"><input type="checkbox" id="featShopping"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🎭 Roleplay & date scenarios</span>
-                                <label class="toggle"><input type="checkbox" id="featDateRP"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>💪 Fitness & body goals advisor</span>
-                                <label class="toggle"><input type="checkbox" id="featFitness"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🧘 Mental health & self-care</span>
-                                <label class="toggle"><input type="checkbox" id="featSelfCare"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>👗 Fashion & grooming advisor</span>
-                                <label class="toggle"><input type="checkbox" id="featFashion"><span class="slider"></span></label>
-                            </div>
-                            <div class="toggle-item">
-                                <span>🍳 Date night planner</span>
-                                <label class="toggle"><input type="checkbox" id="featDateNight"><span class="slider"></span></label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="setting-group">
-                        <label>Response Length</label>
-                        <select id="settingsLength">
-                            <option value="short">Short (1-2 sentences)</option>
-                            <option value="medium" selected>Medium (2-4 sentences)</option>
-                            <option value="long">Long (detailed paragraphs)</option>
-                        </select>
+                        <input type="text" id="settingsPetNames" placeholder="babe, love, sweetheart">
                     </div>
                     <div class="setting-group">
                         <label>Language</label>
                         <select id="settingsLanguage">
                             <option value="english">English</option>
-                            <option value="hinglish">Hinglish (Hindi + English)</option>
+                            <option value="hinglish">Hinglish</option>
+                            <option value="hindi">Hindi</option>
                             <option value="spanish">Spanish</option>
-                            <option value="french">French</option>
-                            <option value="japanese">Japanese</option>
-                            <option value="korean">Korean</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Knowledge Tab -->
+                <div class="tab-content" id="tab-knowledge">
+                    <div class="setting-group">
+                        <label>📄 Upload Knowledge File (PDF/TXT)</label>
+                        <div class="pdf-upload-area">
+                            <input type="file" id="pdfUpload" accept=".pdf,.txt" hidden>
+                            <button class="btn-upload" id="uploadPdfBtn">📎 Upload File</button>
+                            <span class="pdf-status" id="pdfStatus">No file loaded</span>
+                            <button class="btn-remove-pdf hidden" id="removePdfBtn">✕</button>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>Knowledge Base (Teach Liya anything)</label>
+                        <textarea id="settingsKnowledge" rows="8" placeholder="Add knowledge here — Liya will use this to answer questions.&#10;&#10;Format (one per line):&#10;Topic: Answer/Information&#10;&#10;Examples:&#10;My birthday: March 15&#10;Favorite food: Biryani and pasta&#10;My job: Software developer&#10;Our anniversary: January 20&#10;Best condom brand: Durex Air&#10;Lingerie suggestion: Try lace from Victoria's Secret&#10;Workout: Push-pull-legs split, 5 days/week"></textarea>
+                        <p class="setting-hint">Add facts, preferences, product info — anything you want her to know</p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Quick Knowledge Entries</label>
+                        <div class="quick-add">
+                            <input type="text" id="quickTopic" placeholder="Topic (e.g., My car)">
+                            <input type="text" id="quickAnswer" placeholder="Info (e.g., Black Honda City)">
+                            <button class="btn-add" id="quickAddBtn">+ Add</button>
+                        </div>
+                        <div class="knowledge-list" id="knowledgeList"></div>
+                    </div>
+                </div>
+
+                <!-- Responses Tab -->
+                <div class="tab-content" id="tab-responses">
+                    <div class="setting-group">
+                        <label>Custom Responses (Trigger → Reply)</label>
+                        <textarea id="settingsResponses" rows="8" placeholder="Add custom trigger-response pairs.&#10;&#10;Format:&#10;trigger | response&#10;&#10;Examples:&#10;kiss me | Mwah! 💋 That felt so sweet, babe&#10;good morning | Good morning love! ☀️ Did you sleep well?&#10;I love you | I love you more 💕 You make my heart flutter&#10;how are you | I'm doing great now that you're here 😊&#10;miss you | Aww I miss you too babe 🥺 Wish I could hug you right now&#10;goodnight | Goodnight my love 🌙 Sweet dreams, think of me 💕&#10;hug me | *wraps arms around you* 🤗 I'm never letting go"></textarea>
+                        <p class="setting-hint">When user says the trigger, Liya replies with the response</p>
+                    </div>
+                    <div class="setting-group">
+                        <label>Quick Response Entry</label>
+                        <div class="quick-add">
+                            <input type="text" id="quickTrigger" placeholder="When I say... (e.g., kiss me)">
+                            <input type="text" id="quickReply" placeholder="Liya replies... (e.g., Mwah! 💋)">
+                            <button class="btn-add" id="quickResponseBtn">+ Add</button>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>Default Responses (when nothing matches)</label>
+                        <textarea id="settingsDefaults" rows="4" placeholder="One per line — Liya picks randomly when she doesn't know what to say:&#10;&#10;Tell me more about that, babe 😊&#10;Hmm interesting! What else? 💕&#10;I love talking to you 🥰"></textarea>
                     </div>
                 </div>
 
